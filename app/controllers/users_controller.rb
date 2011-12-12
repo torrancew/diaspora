@@ -143,10 +143,10 @@ class UsersController < ApplicationController
   end
 
   def export_photos
-    tar_path = PhotoMover::move_photos(current_user)
-    send_data( File.open(tar_path).read, :filename => "#{current_user.id}.tar" )
+    Resque.enqueue(Jobs::ExportPhotos, current_user.id)
+    redirect_to edit_user_path
   end
-
+  
   def user_photo
     username = params[:username].split('@')[0]
     user = User.find_by_username(username)
