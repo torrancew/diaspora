@@ -143,10 +143,11 @@ class UsersController < ApplicationController
   end
 
   def export_photos
-    Resque.enqueue(Jobs::ExportPhotos, current_user.id)
-    redirect_to edit_user_path
+    archive_file_name = "#{current_user.person.guid}_#{Time.now.to_i}.tar"
+    Resque.enqueue(Jobs::ExportPhotos, current_user.id, archive_file_name)
+    redirect_to edit_user_path, :notice => "Your file will be available at #{AppConfig[:pod_url]}exports/#{archive_file_name}"
   end
-  
+
   def user_photo
     username = params[:username].split('@')[0]
     user = User.find_by_username(username)

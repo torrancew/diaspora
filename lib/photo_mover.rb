@@ -2,34 +2,46 @@ require 'open-uri'
 
 class PhotoMover
 
-  def initialize(user_id)
-    @user = User.find_by_id(user_id)
+  def initialize(user_id, archive_name)
+    @user          = User.find_by_id(user_id)
+    @archive_name  = archive_name
+
+    @pub_dir        = File.join(Rails.root, 'public', 'exports')
+    @tmp_dir        = File.join(Rails.root, 'tmp', 'exports')
+    @tmp_user_dir   = File.join(@tmp_dir, @user.id.to_s)
+    @tmp_photos_dir = File.join(@tmp_user_dir, 'photos')
+  end
+
+  def setup_directories
+    FileUtils::mkdir_p @pub_dir
+    FileUtils::mkdir_p @tmp_photos_dir
+  end
+
+  def copy_photo(photo)
+    current_location = photo.url
+    new_path         = File.join(@tmp_photos_dir, photo.remote_photo_name)
+    
+    File.open(new_path, 'w') do |f|
+      OpenURI.open_uri(current_location) { |uri| f.write(uri.read) }
+    end
   end
 
   def generate_tarball
-    Dir.chdir Rails.root
-    temp_dir = "tmp/exports/#{@user.id.to_s}"
-    FileUtils::mkdir_p temp_dir
-    Dir.chdir 'tmp/exports'
+    setup_directories
 
-    photos = @user.photos
-
-    photos_dir = "#{@user.id.to_s}/photos"
-    FileUtils::mkdir_p photos_dir
-
-    photos.each do |photo|
-      current_photo_location = photo.url
-      new_photo_location     = "#{photos_dir}/#{photo.remote_photo_name}"
-
-      File.open(new_photo_location, 'w') { |f|
-        OpenURI.open_uri(current_photo_location) { |uri| f.write(uri.read) }
-      }
+    @user.photos.each do |photo|
+      copy_photo photo
     end
 
-    `tar c #{@user.id.to_s} > #{@user.id}.tar`
-    #system("tar", "c", "#{user.id}",">", "#{user.id}.tar")
-    FileUtils::rm_r "#{@user.id.to_s}/", :secure => true, :force => true
+    Dir.chdir @tmp_dir do
+      `tar c #{@user.id.to_s} > #{File.join(@pub_dir, @archive_name)}`
+    end
 
-    "#{Rails.root}/#{temp_dir}.tar"
+    cleanup_tmp_files
   end
+
+  def cleanup_tmp_files
+    FileUtils::rm_r @tmp_user_dir, :secure => true, :force => true
+  end
+
 end
