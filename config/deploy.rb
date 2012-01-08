@@ -45,33 +45,23 @@ namespace :deploy do
   end
 
   task :restart do
-    thins = capture "svstat /service/thin*"
-    matches = thins.match(/(thin_\d+):/).captures
-
-    matches.each_with_index do |thin, index|
-      unless index == 0
-        puts "sleeping for 20 seconds"
-        sleep(20)
-      end
-      run "svc -t /service/#{thin}"
-    end
-
-    run "svc -t /service/resque_worker*"
+    run 'sv restart resque'
+    run 'sv restart diaspora'
   end
 
   task :kill do
-    run "svc -k /service/thin*"
-    run "svc -k /service/resque_worker*"
+    run 'sv kill resque'
+    run 'sv kill diaspora'
   end
 
   task :start do
-    run "svc -u /service/thin*"
-    run "svc -u /service/resque_worker*"
+    run 'sv start resque'
+    run 'sv start diaspora'
   end
 
   task :stop do
-    run "svc -d /service/thin*"
-    run "svc -d /service/resque_worker*"
+    run 'sv stop resque'
+    run 'sv stop diaspora'
   end
 
   desc 'Copy resque-web assets to public folder'
