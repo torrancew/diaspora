@@ -10,5 +10,6 @@ end
 if config['branch']
   set :branch, config['branch']
 end
+set :keep_releases, config['keep_releases'] if config['keep_releases']
 set :repository, config['repo']
 server config['server'], :app, :web, :db, :primary => true
